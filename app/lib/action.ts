@@ -7,7 +7,6 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { CreateInvoice } from '../ui/invoices/buttons';
-import { date } from 'zod/v4';
  
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const FormSchema = z.object({
@@ -22,6 +21,11 @@ const FormSchema = z.object({
     invalid_type_error:'Please select an invoice status.',
    }), 
    date:z.string()
+});
+export const CreateInvoiceSchema = z.object({
+  customerId: z.string().min(1),
+  amount: z.coerce.number().positive(),  // or z.number() depending on your formData handling
+  status: z.enum(["pending", "paid"]),
 });
 // Use Zod to update the expected types
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
@@ -54,7 +58,7 @@ const UpdateInvoice = FormSchema.omit({ id: true, date: true });
   }
 }
 export async function createInvoice(prevState: State, formData: FormData) {
-   const validatedFields = CreateInvoice.safeParse({
+   const validatedFields = CreateInvoiceSchema.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
